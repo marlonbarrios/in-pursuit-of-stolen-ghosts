@@ -7,7 +7,7 @@ const seed = Math.floor(Math.random() * 100000);
 // Fast LCM image-to-image — we call our proxy which adds FAL_KEY and forwards to fal.run
 const IMAGE_TO_IMAGE_MODEL = 'https://fal.run/fal-ai/fast-lcm-diffusion/image-to-image';
 const API_TIMEOUT_MS = 90000; // 90s
-const THROTTLE_MS = 200; // send quickly after drawing for fast feedback
+const THROTTLE_MS = 10; // send very quickly after drawing for fast feedback
 const PROXY_URL = '/api/fal/proxy';
 
 function getImageUrlFromResult(result: Record<string, unknown>): string | null {
@@ -71,6 +71,7 @@ export default function Home() {
   const lastGoodImageRef = useRef<string | null>(null);
   const previousGoodImageRef = useRef<string | null>(null);
   const lastSentSceneRef = useRef<string | null>(null);
+  const sampleAndSendRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     import('@excalidraw/excalidraw').then((comp) => setComp(comp.Excalidraw));
@@ -224,6 +225,29 @@ export default function Home() {
     }
   }
 
+  // Keep sample-and-send logic in a ref so the 10 ms interval always calls the latest
+  useEffect(() => {
+    sampleAndSendRef.current = async () => {
+      if (!excalidrawAPI || !excalidrawExportFns) return;
+      const elements = excalidrawAPI.getSceneElements?.() ?? [];
+      const appState = excalidrawAPI.getAppState?.() ?? {};
+      const files = excalidrawAPI.getFiles?.() ?? {};
+      const newSceneData = excalidrawExportFns.serializeAsJSON(elements, appState, files, 'local');
+      if (!elements?.length || newSceneData === lastSentSceneRef.current) return;
+      const dataUrl = await getDataUrl(elements, appState, files);
+      if (!dataUrl) return;
+      lastSentSceneRef.current = newSceneData;
+      send({ sync_mode: true, strength, seed, image_url: dataUrl, prompt: input });
+    };
+  }, [excalidrawAPI, excalidrawExportFns, strength, input, send]);
+
+  // Sample Excalidraw every 1 ms and send when scene changed
+  useEffect(() => {
+    if (!excalidrawAPI) return;
+    const intervalId = setInterval(() => sampleAndSendRef.current(), 1);
+    return () => clearInterval(intervalId);
+  }, [excalidrawAPI]);
+
   return (
     <main className="p-12 min-h-screen" style={{ backgroundColor: '#f9fafb' }}>
       <p className="text-xl mb-2">in pursuit of stolen ghosts | concept, programming, sound design and performance by <a href='https://marlonbarrios.github.io/'>marlon barrios solano</a></p>
@@ -243,7 +267,7 @@ export default function Home() {
               <Comp
                 theme="light"
                 excalidrawAPI={(api) => setExcalidrawAPI(api)}
-                onChange={async (elements, appState) => {
+                onChange={(elements, appState) => {
                   const newSceneData = excalidrawExportFns.serializeAsJSON(
                     elements,
                     appState,
@@ -254,18 +278,7 @@ export default function Home() {
                     setAppState(appState);
                     setSceneData(newSceneData);
                   }
-                  // Only generate when the drawing changed (ref avoids stale state)
-                  if (newSceneData === lastSentSceneRef.current) return;
-                  if (!elements?.length || !excalidrawAPI) return;
-                  const files = excalidrawAPI.getFiles();
-                  const dataUrl = await getDataUrl(elements, appState, files);
-                  if (!dataUrl) return;
-                  lastSentSceneRef.current = newSceneData;
-                  send({
-                    ...baseArgs,
-                    image_url: dataUrl,
-                    prompt: input,
-                  });
+                  // Generation is driven by the 10 ms sampler, not here
                 }}
               />
             )
