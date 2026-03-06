@@ -1,0 +1,97 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* No dark mode — light only, no black backgrounds anywhere */
+html {
+  color-scheme: light;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+  }
+
+  /* Force .dark to use same light colors — no dark mode */
+  .dark,
+  .dark * {
+    --background: 0 0% 98%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --primary: 222.2 47.4% 11.2%;
+    --secondary: 210 40% 96.1%;
+    --muted: 210 40% 96.1%;
+    --accent: 210 40% 96.1%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  main,
+  #__next {
+    background-color: #f9fafb !important;
+    color: #111827;
+  }
+  img[alt="Generated image"] {
+    background-color: #e5e7eb !important;
+  }
+  /* Right panel: never black — light gray only (override any dark/black) */
+  .generated-image-panel,
+  main .generated-image-panel,
+  .generated-image-panel div,
+  .generated-image-panel img,
+  main .flex .generated-image-panel,
+  main .flex .generated-image-panel * {
+    background-color: #e5e7eb !important;
+  }
+  main .flex .generated-image-panel p {
+    background-color: transparent !important;
+  }
+}
+
+/* Outside @layer so these win over Tailwind utilities — right panel must never be black */
+#generated-image-panel,
+#generated-image-panel *,
+main div.flex > div:last-child,
+main div.flex > div:last-child * {
+  background-color: #e5e7eb !important;
+}
+#generated-image-panel p,
+main div.flex > div:last-child p {
+  background-color: transparent !important;
+}
